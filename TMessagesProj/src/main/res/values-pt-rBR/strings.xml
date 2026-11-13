@@ -13,6 +13,7 @@
     <string name="ForkSettingsLockUnlockInfo">Digite o código para abrir as Configurações do cliente Fork.</string>
     <string name="DeleteFromDevice">Apagar do dispositivo</string>
     <string name="DeleteFromDeviceDone">Arquivo apagado do dispositivo</string>
+    <string name="DeleteFromDeviceFailed">Não foi possível apagar o arquivo deste dispositivo.</string>
     <string name="DeleteFromDeviceMessage">Este arquivo será apagado permanentemente do seu dispositivo.</string>
     <string name="SendAsRoundVideo">Enviar como vídeo redondo</string>
     <string name="ExportSettings">Exportar configurações</string>

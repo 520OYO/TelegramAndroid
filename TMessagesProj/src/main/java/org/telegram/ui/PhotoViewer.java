@@ -193,6 +193,7 @@ import org.telegram.messenger.browser.Browser;
 import org.telegram.messenger.camera.Size;
 import org.telegram.messenger.forkgram.ForkOfflineTranscribe;
 import org.telegram.messenger.forkgram.ForkVideoSubtitles;
+import org.telegram.messenger.forkgram.PhotoBinBulletin;
 import org.telegram.messenger.forkgram.PhotoCollage;
 import org.telegram.messenger.forkgram.SubtitleSegment;
 //import org.telegram.messenger.chromecast.ChromecastController;
@@ -404,6 +405,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
     private ActionBar actionBar;
     private ImageView actionBarBackButton;
+    private ImageView deleteAfterSendButton;
+    private static final int BULLETIN_TAG_DELETE_FILE = 0x0DA5;
     private Drawable actionBarBackButtonDrawableDeafult;
     private Drawable actionBarBackButtonDrawableGlass;
     private boolean isActionBarVisible = true;
@@ -4903,6 +4906,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         actionBarBackButtonDrawableGlass = null;
         actionBarContainer = new PhotoViewerActionBarContainer(activity);
         actionBar.addView(actionBarContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
+
         containerView.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         countView = new PhotoCountView(activity);
@@ -7717,6 +7721,16 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         });
         tuneItem.setContentDescription(getString("AccDescrPhotoAdjust", R.string.AccDescrPhotoAdjust));
 
+        deleteAfterSendButton = new ImageView(parentActivity);
+        deleteAfterSendButton.setScaleType(ImageView.ScaleType.CENTER);
+        deleteAfterSendButton.setImageResource(R.drawable.msg_delete);
+        deleteAfterSendButton.setBackground(Theme.createInsetRoundRectDrawable(0x10FFFFFF, dp(22), dp(4), dp(6)));
+        deleteAfterSendButton.setColorFilter(0xffffffff);
+        deleteAfterSendButton.setContentDescription(getString(R.string.DeleteFromDevice));
+        deleteAfterSendButton.setVisibility(View.GONE);
+        deleteAfterSendButton.setOnClickListener(v -> toggleDeleteAfterSend());
+        itemsLayout.addView(deleteAfterSendButton, LayoutHelper.createLinear(48, 48));
+
         editorDoneLayout = new PickerBottomLayoutViewer(activityContext);
         editorDoneLayout.setBackgroundColor(0xcc000000);
         editorDoneLayout.updateSelectedCount(0, false);
@@ -8558,6 +8572,56 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             width = Math.max(width, dp(100));
         }
         actionBarContainer.updateRightPadding(width, false);
+    }
+
+    private MediaController.PhotoEntry currentSendPhotoEntry() {
+        if (currentIndex < 0 || currentIndex >= imagesArrLocals.size()) {
+            return null;
+        }
+        final Object object = imagesArrLocals.get(currentIndex);
+        return object instanceof MediaController.PhotoEntry ? (MediaController.PhotoEntry) object : null;
+    }
+
+    private boolean canDeleteAfterSend() {
+        if (sendPhotoType != 0 || sendPhotoTypeIsGif || sendPhotoTypeIsPollMedia || sendPhotoTypeIsPollMediaEdit || isDocumentsPicker) {
+            return false;
+        }
+        if (imagesArrLocals.isEmpty() || parentChatActivity == null || parentChatActivity.isSecretChat()) {
+            return false;
+        }
+        if (placeProvider == null || placeProvider.getEditingMessageObject() != null) {
+            return false;
+        }
+        final MediaController.PhotoEntry entry = currentSendPhotoEntry();
+        return entry != null && !entry.isVideo && !TextUtils.isEmpty(entry.path);
+    }
+
+    private void updateDeleteAfterSendButton() {
+        if (deleteAfterSendButton == null || actionBarContainer == null) {
+            return;
+        }
+        final boolean visible = canDeleteAfterSend();
+        final MediaController.PhotoEntry entry = visible ? currentSendPhotoEntry() : null;
+        final boolean armed = entry != null && entry.deleteAfterSend;
+        deleteAfterSendButton.setSelected(armed);
+        deleteAfterSendButton.setColorFilter(armed ? Theme.getColor(Theme.key_text_RedBold, resourcesProvider) : 0xffffffff);
+        deleteAfterSendButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    private void toggleDeleteAfterSend() {
+        final MediaController.PhotoEntry entry = canDeleteAfterSend() ? currentSendPhotoEntry() : null;
+        if (entry == null) {
+            return;
+        }
+        entry.deleteAfterSend = !entry.deleteAfterSend;
+        updateDeleteAfterSendButton();
+        if (entry.deleteAfterSend) {
+            PhotoBinBulletin.show(containerView, resourcesProvider, BULLETIN_TAG_DELETE_FILE, () -> {
+                final CaptionPhotoViewer compose = placeProvider != null && placeProvider.isCaptionAbove() && topCaptionEdit.isShown()
+                    ? topCaptionEdit : captionEdit;
+                return compose == null ? Double.NaN : compose.getComposeTopOnScreen();
+            });
+        }
     }
 
     private void setMenuItemIcon(boolean animated, boolean isFinal) {
@@ -15396,6 +15460,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         rotateItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.GONE : View.VISIBLE);
                         mirrorItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.GONE : View.VISIBLE);
                     }
+                    updateDeleteAfterSendButton();
                     if (animated) {
                         actionBar.beginDelayedTransition();
                     }
@@ -15573,6 +15638,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
         setCurrentCaption(newMessageObject, caption, captionTranslating, animateCaption);
+        updateDeleteAfterSendButton();
     }
 
     private void checkActionBarStyle() {
@@ -15597,6 +15663,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             actionBarBackButton.setStateListAnimator(null);
             actionBarBackButton.setBackground(actionBarBackButtonDrawableDeafult);
         }
+        updateDeleteAfterSendButton();
     }
 
     private void updateCaptionTranslated() {
