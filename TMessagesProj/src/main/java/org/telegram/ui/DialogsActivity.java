@@ -3613,7 +3613,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     UserConfig.getInstance(currentAccount).setMainTabsHiddenFork(mainTabsHidden);
                     checkUi_mainTabsVisible();
                     if (mainTabsHidden && getParentActivity() != null) {
-                        Toast.makeText(getParentActivity(), LocaleController.getString("MainTabsHiddenHint", R.string.MainTabsHiddenHint), Toast.LENGTH_LONG).show();
+                        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+                        if (!preferences.getBoolean("mainTabsHiddenHintAcknowledged", false)) {
+                            BulletinFactory.of(DialogsActivity.this).createSimpleBulletin(
+                                    R.raw.filter_reorder, getString(R.string.MainTabsHiddenHint), getString(R.string.GotIt),
+                                    Bulletin.DURATION_PROLONG,
+                                    () -> preferences.edit().putBoolean("mainTabsHiddenHintAcknowledged", true).apply()
+                            ).show();
+                        }
                     }
                     return true;
                 });
