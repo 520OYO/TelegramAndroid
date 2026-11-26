@@ -113,8 +113,12 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           overwrite: true
-      - name: Self-sign installable APK (CI debug key, no repo secrets)
+      - name: Self-sign installable APK (fixed debug key from secrets when available)
         if: steps.mode.outputs.mode == 'ci'
+        env:
+          CI_DEBUG_KEYSTORE_BASE64: ${{ secrets.CI_DEBUG_KEYSTORE_BASE64 }}
+          CI_DEBUG_KEYSTORE_ALIAS: ${{ secrets.CI_DEBUG_KEYSTORE_ALIAS }}
+          CI_DEBUG_KEYSTORE_PASS: ${{ secrets.CI_DEBUG_KEYSTORE_PASS }}
         run: |
           set -euo pipefail
           tools="$ANDROID_HOME/build-tools/36.0.0"
@@ -123,15 +127,26 @@ jobs:
           "$tools/zipalign" -f -P 16 4 "$apk" "$RUNNER_TEMP/ci-aligned.apk"
           "$tools/zipalign" -c -P 16 4 "$RUNNER_TEMP/ci-aligned.apk"
           keystore="$RUNNER_TEMP/ci-debug.keystore"
-          keytool -genkeypair -keystore "$keystore" -storepass android -keypass android \
-            -alias cidebug -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=ForkClient CI,O=ForkClient,C=US" >/dev/null 2>&1
+          alias_name="${CI_DEBUG_KEYSTORE_ALIAS:-cidebug}"
+          store_pass="${CI_DEBUG_KEYSTORE_PASS:-android}"
+          if [[ -n "${CI_DEBUG_KEYSTORE_BASE64:-}" ]]; then
+            printf '%s' "$CI_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+            unset CI_DEBUG_KEYSTORE_BASE64
+            echo "使用 Secrets 中的固定调试 keystore 签名，签名指纹在多次构建之间保持一致。"
+          else
+            keytool -genkeypair -keystore "$keystore" -storepass "$store_pass" -keypass "$store_pass" \
+              -alias "$alias_name" -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=ForkClient CI,O=ForkClient,C=US" >/dev/null 2>&1
+            echo "::warning title=临时签名::未配置 CI_DEBUG_KEYSTORE_BASE64，本次使用一次性 keystore 签名，安装前必须先卸载旧版本。"
+          fi
           mkdir -p installable
-          "$tools/apksigner" sign --ks "$keystore" --ks-key-alias cidebug \
-            --ks-pass pass:android --key-pass pass:android \
+          "$tools/apksigner" sign --ks "$keystore" --ks-key-alias "$alias_name" \
+            --ks-pass "pass:$store_pass" --key-pass "pass:$store_pass" \
             --v1-signing-enabled true --v2-signing-enabled true \
             --v3-signing-enabled false --v4-signing-enabled false \
             --out "installable/ForkClient-ci.apk" "$RUNNER_TEMP/ci-aligned.apk"
+          rm -f -- "$keystore"
+          unset CI_DEBUG_KEYSTORE_ALIAS CI_DEBUG_KEYSTORE_PASS
           "$tools/apksigner" verify --print-certs "installable/ForkClient-ci.apk" > "$RUNNER_TEMP/verify.txt" 2>&1 || { cat "$RUNNER_TEMP/verify.txt"; exit 1; }
           head -5 "$RUNNER_TEMP/verify.txt"
           ls -l installable

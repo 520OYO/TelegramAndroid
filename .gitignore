@@ -28,3 +28,8 @@ TMessagesProj/jni/prebuild/lib/
 TMessagesProj/jni/prebuild/include/
 TMessagesProj/jni/prebuild/pkgconfig/
 TMessagesProj/jni/prebuild/build_env.txt
+# 签名密钥永不入库，统一存 GitHub Actions Secrets
+*.keystore
+*.jks
+*.keystore.base64.txt
+
