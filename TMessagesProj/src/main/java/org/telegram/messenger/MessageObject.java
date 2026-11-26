@@ -3831,6 +3831,9 @@ public class MessageObject {
     }
 
     public boolean translated = false;
+    // 本地翻译结果（仅内存，不写库，不影响搜索/转发/引用）
+    public TLRPC.TL_textWithEntities localTranslation;
+    public String localTranslationLang;
     public boolean summarized = false;
     public boolean updateTranslation(boolean force) {
         boolean replyUpdated = replyMessageObject != null && replyMessageObject != this && replyMessageObject.updateTranslation(force);
@@ -3887,6 +3890,19 @@ public class MessageObject {
                 generateLayout(null);
             } else if (translatedText != null) {
                 applyNewText(translatedText.text);
+                generateCaption();
+            }
+            return replyUpdated || true;
+        } else if (localTranslation != null && localTranslation.text != null) {
+            if (translated && !summarized) {
+                return replyUpdated || false;
+            }
+            translated = true;
+            summarized = false;
+            if (type == TYPE_ARTICLE) {
+                generateLayout(null);
+            } else {
+                applyNewText(localTranslation.text);
                 generateCaption();
             }
             return replyUpdated || true;
@@ -7896,11 +7912,11 @@ public class MessageObject {
             captionTranslated = false;
             text = messageOwner.summaryText.text;
             entities = messageOwner.summaryText.entities;
-        } else if (messageOwner.translatedText != null && translated) {
+        } else if (localTranslation != null && localTranslation.text != null && translated) {
             captionSummarized = false;
             captionTranslated = true;
-            text = messageOwner.translatedText.text;
-            entities = messageOwner.translatedText.entities;
+            text = localTranslation.text;
+            entities = localTranslation.entities;
         } else {
             captionSummarized = false;
             captionTranslated = false;
