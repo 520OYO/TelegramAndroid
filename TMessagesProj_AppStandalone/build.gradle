@@ -163,4 +163,4 @@ android {
     }
 }
 
-apply plugin: 'com.google.gms.google-services'
+// Fork client: the com.google.gms.google-services plugin was removed together with GMS.

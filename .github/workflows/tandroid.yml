@@ -113,6 +113,37 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           overwrite: true
+      - name: Self-sign installable APK (CI debug key, no repo secrets)
+        if: steps.mode.outputs.mode == 'ci'
+        run: |
+          set -euo pipefail
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          apk="TMessagesProj_App/build/outputs/apk/afat/release/app.apk"
+          test -f "$apk"
+          "$tools/zipalign" -f -P 16 4 "$apk" "$RUNNER_TEMP/ci-aligned.apk"
+          "$tools/zipalign" -c -P 16 4 "$RUNNER_TEMP/ci-aligned.apk"
+          keystore="$RUNNER_TEMP/ci-debug.keystore"
+          keytool -genkeypair -keystore "$keystore" -storepass android -keypass android \
+            -alias cidebug -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=ForkClient CI,O=ForkClient,C=US" >/dev/null 2>&1
+          mkdir -p installable
+          "$tools/apksigner" sign --ks "$keystore" --ks-key-alias cidebug \
+            --ks-pass pass:android --key-pass pass:android \
+            --v1-signing-enabled true --v2-signing-enabled true \
+            --v3-signing-enabled false --v4-signing-enabled false \
+            --out "installable/ForkClient-ci.apk" "$RUNNER_TEMP/ci-aligned.apk"
+          "$tools/apksigner" verify --print-certs "installable/ForkClient-ci.apk" > "$RUNNER_TEMP/verify.txt" 2>&1 || { cat "$RUNNER_TEMP/verify.txt"; exit 1; }
+          head -5 "$RUNNER_TEMP/verify.txt"
+          ls -l installable
+      - name: Upload installable APK
+        if: steps.mode.outputs.mode == 'ci'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-installable-apk
+          path: installable/
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
 
   sign:
     name: Sign APK
