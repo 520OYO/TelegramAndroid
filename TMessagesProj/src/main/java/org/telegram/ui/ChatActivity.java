@@ -177,6 +177,7 @@ import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.SendMessageChatArguments;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.ai.AiAssistantDialog;
 import org.telegram.messenger.tts.ReadAloudController;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
@@ -1327,6 +1328,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_STOP_LIVE_LOCATION = 118;
     public final static int OPTION_VOICE_TIMECODES = 119;
     public final static int OPTION_READ_ALOUD = 120;
+    public final static int OPTION_AI_ASSISTANT = 121;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -35387,6 +35389,14 @@ public class ChatActivity extends BaseFragment implements
                 });
                 break;
             }
+            case OPTION_AI_ASSISTANT: {
+                if (selectedObject == null || getParentActivity() == null) {
+                    break;
+                }
+                final CharSequence aiSource = selectedObject.messageText;
+                AiAssistantDialog.show(getParentActivity(), currentAccount, aiSource == null ? null : aiSource.toString());
+                break;
+            }
             case OPTION_READ_ALOUD: {
                 final MessageObject readObject = selectedObject;
                 final CharSequence readText = readObject == null ? null : readObject.messageText;
@@ -47692,6 +47702,11 @@ public class ChatActivity extends BaseFragment implements
                     items.add("朗读");
                     options.add(OPTION_READ_ALOUD);
                     icons.add(R.drawable.filled_sound_on);
+                }
+                if (selectedObject != null && !selectedObject.isEphemeral() && selectedObject.contentType == 0 && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
+                    items.add("AI助手");
+                    options.add(OPTION_AI_ASSISTANT);
+                    icons.add(R.drawable.msg_translate);
                 }
                 if (message.canEditMessage(currentChat) && message.type != MessageObject.TYPE_POLL || chatMode == MODE_WELCOME_MESSAGES) {
                     items.add(LocaleController.getString(R.string.Edit));
