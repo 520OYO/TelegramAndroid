@@ -73,6 +73,9 @@ import org.telegram.messenger.ChatThemeController;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ai.AiChatPage;
+import org.telegram.messenger.ai.AiFlags;
+import org.telegram.messenger.ai.FeatureModelDialog;
 import org.telegram.messenger.ai.ModelConfigDialog;
 import org.telegram.messenger.tts.CloudTtsEngine;
 import org.telegram.messenger.tts.ReadAloudController;
@@ -828,6 +831,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(SettingCell.Factory.of(98, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_fork, getString(R.string.ForkSettingsTitle)));
             items.add(SettingCell.Factory.of(99, IconBackgroundColors.BLUE_DEEP.top, IconBackgroundColors.BLUE_DEEP.bottom, R.drawable.settings_check_update, getString(R.string.ForkCheckUpdate)));
             items.add(SettingCell.Factory.of(995, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "AI 模型配置中心"));
+            items.add(SettingCell.Factory.of(999, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "AI 对话", "连续追问的对话页，不再一问一弹窗"));
+            items.add(SettingCell.Factory.of(1001, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "为各功能指定模型", "对话 / 朗读 / 生图 / 翻译 各挑一条"));
+            items.add(SettingCell.Factory.of(1000, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "AI 功能总开关", AiFlags.isEnabled(getContext()) ? "开：长按菜单 AI 项与对话页可用" : "关：AI 相关入口全部隐藏"));
             items.add(SettingCell.Factory.of(998, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "朗读引擎", CloudTtsEngine.ID.equals(ReadAloudController.getSelectedEngineId(getContext())) ? "云端朗读" : "系统朗读"));
             items.add(SettingCell.Factory.of(996, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地文件备份到频道"));
             items.add(SettingCell.Factory.of(997, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地解锁付费功能"));
@@ -948,6 +954,41 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             case 995:
                 ModelConfigDialog.showList(getParentActivity());
                 break;
+            case 999:
+                if (getParentActivity() != null) {
+                    AiChatPage.show(getParentActivity(), currentAccount, null);
+                }
+                break;
+            case 1001:
+                if (getParentActivity() != null) {
+                    FeatureModelDialog.show(getParentActivity());
+                }
+                break;
+            case 1000: {
+                if (getParentActivity() == null) {
+                    break;
+                }
+                final Context aiCtx = getParentActivity();
+                final boolean aiOn = AiFlags.isEnabled(aiCtx);
+                final String[] aiOpts = new String[]{
+                        "开：显示长按菜单 AI 项，可打开 AI 对话",
+                        "关：隐藏长按菜单 AI 项，禁止打开 AI 对话"
+                };
+                AlertDialog.Builder ab = new AlertDialog.Builder(aiCtx);
+                ab.setTitle("AI 功能总开关");
+                ab.setSingleChoiceItems(aiOpts, aiOn ? 0 : 1, (d, which) -> {
+                    AiFlags.setEnabled(aiCtx, which == 0);
+                    d.dismiss();
+                    Toast.makeText(aiCtx, which == 0 ? "AI 功能已开启" : "AI 功能已关闭（翻译、朗读不受影响）", Toast.LENGTH_SHORT).show();
+                    try {
+                        listView.adapter.update(true);
+                    } catch (Throwable ignore) {
+                    }
+                });
+                ab.setNegativeButton("关闭", null);
+                ab.show();
+                break;
+            }
             case 998: {
                 if (getParentActivity() == null) {
                     break;

@@ -179,6 +179,7 @@ import org.telegram.messenger.SendMessageChatArguments;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.ai.AiAssistantDialog;
 import org.telegram.messenger.ai.AiClient;
+import org.telegram.messenger.ai.AiFlags;
 import org.telegram.messenger.tts.ReadAloudController;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
@@ -47740,7 +47741,7 @@ AndroidUtilities.runOnUIThread(new Runnable() {
                     options.add(OPTION_READ_ALOUD);
                     icons.add(R.drawable.filled_sound_on);
                 }
-                if (selectedObject != null && !selectedObject.isEphemeral() && selectedObject.contentType == 0 && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
+                if (AiFlags.isEnabled(getParentActivity()) && selectedObject != null && !selectedObject.isEphemeral() && selectedObject.contentType == 0 && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
                     items.add("AI助手");
                     options.add(OPTION_AI_ASSISTANT);
                     icons.add(R.drawable.msg_translate);

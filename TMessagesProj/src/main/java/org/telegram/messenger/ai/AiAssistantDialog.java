@@ -25,9 +25,8 @@ import org.telegram.ui.ActionBar.AlertDialog;
 public class AiAssistantDialog {
 
     private static final String[] MENU_ITEMS = new String[]{
-            "询问 AI",
-            "生成图片",
-            "打开 AI机器人（暂未实现）"
+            "AI 对话（可连续追问）",
+            "生成图片"
     };
 
     private static final String ASK_SYSTEM_PROMPT =
@@ -38,15 +37,17 @@ public class AiAssistantDialog {
         if (context == null) {
             return;
         }
+        if (!AiFlags.isEnabled(context)) {
+            Toast.makeText(context, "AI 功能总开关是关着的，先去设置里打开哦", Toast.LENGTH_SHORT).show();
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("AI助手");
         builder.setItems(MENU_ITEMS, (dialog, which) -> {
             if (which == 0) {
-                showAsk(context, account, sourceText);
-            } else if (which == 1) {
-                showImage(context, account, sourceText);
+                AiChatPage.show(context, account, sourceText);
             } else {
-                Toast.makeText(context, "AI机器人功能暂未实现", Toast.LENGTH_SHORT).show();
+                showImage(context, account, sourceText);
             }
         });
         builder.setNegativeButton("取消", null);
