@@ -189,6 +189,82 @@ public class ApplicationLoader extends Application {
         return null;
     }
 
+    /**
+     * 内置简体中文语言包安装器（Forkgram 定制）。
+     * 作用：首次启动时把 assets/zh_hans.xml 复制到 App 私有目录，并预写语言相关 SharedPreferences，
+     *     使 LocaleController 构造阶段即可命中 local_zh_hans 并强制应用中文。
+     * 特性：幂等；每次启动强制把界面语言写回简体中文（仍保留系统语言选择页，仅启动时回落）。
+     */
+    private static void installBundledChineseLocale() {
+        try {
+            File filesDir = getFilesDirFixed();
+            if (filesDir == null) {
+                return;
+            }
+            filesDir.mkdirs();
+            File target = new File(filesDir, "zh_hans.xml");
+            boolean needCopy = !target.exists() || target.length() < 100000;
+            if (needCopy) {
+                File tmp = new File(filesDir, "zh_hans.xml.tmp");
+                if (tmp.exists()) {
+                    tmp.delete();
+                }
+                java.io.InputStream in = null;
+                java.io.OutputStream out = null;
+                try {
+                    in = ApplicationLoader.applicationContext.getAssets().open("zh_hans.xml");
+                    out = new java.io.FileOutputStream(tmp);
+                    byte[] buffer = new byte[8192];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    out.flush();
+                } finally {
+                    if (out != null) {
+                        try {
+                            out.close();
+                        } catch (Exception ignore) {
+                        }
+                    }
+                    if (in != null) {
+                        try {
+                            in.close();
+                        } catch (Exception ignore) {
+                        }
+                    }
+                }
+                if (tmp.length() < 100000) {
+                    FileLog.e(new RuntimeException("bundled zh_hans.xml copy incomplete, size=" + tmp.length()));
+                    tmp.delete();
+                    return;
+                }
+                if (target.exists()) {
+                    target.delete();
+                }
+                if (!tmp.renameTo(target)) {
+                    FileLog.e(new RuntimeException("bundled zh_hans.xml rename failed"));
+                    return;
+                }
+            }
+
+            String localePath = target.getAbsolutePath();
+
+            SharedPreferences langPrefs = ApplicationLoader.applicationContext.getSharedPreferences("langconfig", Activity.MODE_PRIVATE);
+            String localeRecord = "简体中文|Chinese (Simplified)|zh_hans|" + localePath + "|0||zh_hans|0|0|2147483647";
+            if (!localeRecord.equals(langPrefs.getString("locales", null))) {
+                langPrefs.edit().putString("locales", localeRecord).commit();
+            }
+
+            SharedPreferences mainPrefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            if (!"local_zh_hans".equals(mainPrefs.getString("language", null))) {
+                mainPrefs.edit().putString("language", "local_zh_hans").commit();
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+    }
+
     public static void postInitApplication() {
         if (applicationInited || applicationContext == null) {
             return;
@@ -196,6 +272,11 @@ public class ApplicationLoader extends Application {
         applicationInited = true;
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
 
+        try {
+            installBundledChineseLocale();
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
         try {
             LocaleController.getInstance(); //TODO improve
         } catch (Exception e) {
