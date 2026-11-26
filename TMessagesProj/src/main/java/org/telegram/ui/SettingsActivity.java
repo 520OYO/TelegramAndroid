@@ -75,6 +75,7 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ai.ModelConfigDialog;
 import org.telegram.messenger.backup.BackupConfigDialog;
+import org.telegram.messenger.premium.PremiumUnlockDialog;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LocaleController;
@@ -825,6 +826,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(SettingCell.Factory.of(99, IconBackgroundColors.BLUE_DEEP.top, IconBackgroundColors.BLUE_DEEP.bottom, R.drawable.settings_check_update, getString(R.string.ForkCheckUpdate)));
             items.add(SettingCell.Factory.of(995, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "AI 模型配置中心"));
             items.add(SettingCell.Factory.of(996, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地文件备份到频道"));
+            items.add(SettingCell.Factory.of(997, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地解锁付费功能"));
         }
 
         items.add(UItem.asShadow(null));
@@ -944,6 +946,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 break;
             case 996:
                 BackupConfigDialog.show(getParentActivity());
+                break;
+            case 997:
+                PremiumUnlockDialog.show(getParentActivity());
                 break;
             case 1:
                 presentSettingFragment(new UserInfoActivity());

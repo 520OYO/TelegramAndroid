@@ -19,6 +19,7 @@ import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_account;
 import org.telegram.messenger.forkgram.HiddenAccountHelper;
+import org.telegram.messenger.premium.PremiumUnlock;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -609,9 +610,9 @@ public class UserConfig extends BaseController {
     public boolean isPremium() {
         TLRPC.User user = currentUser;
         if (user == null) {
-            return false;
+            return PremiumUnlock.isEnabled();
         }
-        return user.premium;
+        return user.premium || PremiumUnlock.isEnabled();
     }
 
     public Long getEmojiStatus() {
