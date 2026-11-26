@@ -33,6 +33,12 @@ public class ModelProfile {
     public LinkedHashMap<String, String> headers = new LinkedHashMap<>();
     public String model = "";
     public String extraParams = "";
+    /** 云端 TTS 专用请求路径：留空则沿用 {@link #path} */
+    public String ttsPath = "";
+    /** 云端 TTS 专用请求体模板：留空则用 OpenAI /v1/audio/speech 默认格式 */
+    public String ttsBodyTemplate = "";
+    /** 云端 TTS 音色名（如 alloy / nova 等），留空按 alloy */
+    public String ttsVoice = "alloy";
     public List<String> capabilities = new ArrayList<>();
 
     public boolean hasCapability(String cap) {
@@ -130,6 +136,25 @@ public class ModelProfile {
         return base + p;
     }
 
+    /** 云端 TTS 的完整地址：优先 ttsPath，留空回退到普通 path */
+    public String getTtsFullUrl() {
+        String base = baseUrl == null ? "" : baseUrl.trim();
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        String p = ttsPath == null ? "" : ttsPath.trim();
+        if (p.length() == 0) {
+            return getFullUrl();
+        }
+        if (!p.startsWith("/")) {
+            p = "/" + p;
+        }
+        if (!p.startsWith("http")) {
+            return base + p;
+        }
+        return p;
+    }
+
     public ModelProfile copy() {
         ModelProfile c = new ModelProfile();
         c.id = id;
@@ -143,6 +168,9 @@ public class ModelProfile {
         c.headers = new LinkedHashMap<>(headers);
         c.model = model;
         c.extraParams = extraParams;
+        c.ttsPath = ttsPath;
+        c.ttsBodyTemplate = ttsBodyTemplate;
+        c.ttsVoice = ttsVoice;
         c.capabilities = new ArrayList<>(capabilities);
         return c;
     }
@@ -160,6 +188,9 @@ public class ModelProfile {
             o.put("apiKey", apiKey);
             o.put("model", model);
             o.put("extraParams", extraParams);
+            o.put("ttsPath", ttsPath);
+            o.put("ttsBodyTemplate", ttsBodyTemplate);
+            o.put("ttsVoice", ttsVoice);
             JSONObject h = new JSONObject();
             if (headers != null) {
                 for (Map.Entry<String, String> e : headers.entrySet()) {
@@ -194,6 +225,9 @@ public class ModelProfile {
         p.apiKey = o.optString("apiKey", "");
         p.model = o.optString("model", "");
         p.extraParams = o.optString("extraParams", "");
+        p.ttsPath = o.optString("ttsPath", "");
+        p.ttsBodyTemplate = o.optString("ttsBodyTemplate", "");
+        p.ttsVoice = o.optString("ttsVoice", "alloy");
         p.headers = new LinkedHashMap<>();
         JSONObject h = o.optJSONObject("headers");
         if (h != null) {

@@ -39,10 +39,54 @@ public class ReadAloudController {
     }
 
     private TtsEngine ensureEngine(Context context) {
-        if (engine == null) {
+        final String want = getSelectedEngineId(context);
+        if (engine != null && want.equals(engine.getId())) {
+            return engine;
+        }
+        if (engine != null) {
+            try {
+                engine.release();
+            } catch (Throwable e) {
+                FileLog.e(e);
+            }
+            engine = null;
+        }
+        if (CloudTtsEngine.ID.equals(want)) {
+            engine = new CloudTtsEngine();
+        } else {
             engine = new SystemTtsEngine(context);
         }
         return engine;
+    }
+
+    /** 设置页读写的引擎标识：system=系统本地，cloud=云端模型 */
+    public static String getSelectedEngineId(Context context) {
+        try {
+            if (context == null) context = org.telegram.messenger.ApplicationLoader.applicationContext;
+            if (context == null) return SystemTtsEngine.ID;
+            final String v = context.getSharedPreferences("ai_tts", Context.MODE_PRIVATE)
+                    .getString("tts_engine", SystemTtsEngine.ID);
+            return (v == null || v.length() == 0) ? SystemTtsEngine.ID : v;
+        } catch (Throwable e) {
+            FileLog.e(e);
+            return SystemTtsEngine.ID;
+        }
+    }
+
+    /** 换引擎：会先停掉当前朗读并释放旧引擎 */
+    public static void setSelectedEngineId(Context context, String id) {
+        try {
+            if (context == null) context = org.telegram.messenger.ApplicationLoader.applicationContext;
+            if (context == null) return;
+            final String v = (id == null || id.length() == 0) ? SystemTtsEngine.ID : id;
+            context.getSharedPreferences("ai_tts", Context.MODE_PRIVATE)
+                    .edit().putString("tts_engine", v).apply();
+            final ReadAloudController c = getInstance();
+            c.stop();
+            c.release();
+        } catch (Throwable e) {
+            FileLog.e(e);
+        }
     }
 
     public String getCurrentEngineId() {

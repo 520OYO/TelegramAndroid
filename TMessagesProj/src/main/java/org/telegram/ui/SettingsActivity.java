@@ -74,6 +74,9 @@ import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ai.ModelConfigDialog;
+import org.telegram.messenger.tts.CloudTtsEngine;
+import org.telegram.messenger.tts.ReadAloudController;
+import org.telegram.messenger.tts.SystemTtsEngine;
 import org.telegram.messenger.backup.BackupConfigDialog;
 import org.telegram.messenger.premium.PremiumUnlockDialog;
 import org.telegram.messenger.ImageLoader;
@@ -825,6 +828,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(SettingCell.Factory.of(98, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_fork, getString(R.string.ForkSettingsTitle)));
             items.add(SettingCell.Factory.of(99, IconBackgroundColors.BLUE_DEEP.top, IconBackgroundColors.BLUE_DEEP.bottom, R.drawable.settings_check_update, getString(R.string.ForkCheckUpdate)));
             items.add(SettingCell.Factory.of(995, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "AI 模型配置中心"));
+            items.add(SettingCell.Factory.of(998, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "朗读引擎", CloudTtsEngine.ID.equals(ReadAloudController.getSelectedEngineId(getContext())) ? "云端朗读" : "系统朗读"));
             items.add(SettingCell.Factory.of(996, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地文件备份到频道"));
             items.add(SettingCell.Factory.of(997, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_features, "本地解锁付费功能"));
         }
@@ -944,6 +948,33 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             case 995:
                 ModelConfigDialog.showList(getParentActivity());
                 break;
+            case 998: {
+                if (getParentActivity() == null) {
+                    break;
+                }
+                final Context engineCtx = getParentActivity();
+                final String curEngine = ReadAloudController.getSelectedEngineId(engineCtx);
+                final String[] engineNames = new String[]{
+                        "系统朗读（离线，用手机自带语音）",
+                        "云端朗读（用配置好的语音模型，音质好）"
+                };
+                final int checkedIdx = CloudTtsEngine.ID.equals(curEngine) ? 1 : 0;
+                AlertDialog.Builder eb = new AlertDialog.Builder(engineCtx);
+                eb.setTitle("选朗读引擎");
+                eb.setSingleChoiceItems(engineNames, checkedIdx, (d, which) -> {
+                    if (which == 1) {
+                        ReadAloudController.setSelectedEngineId(engineCtx, CloudTtsEngine.ID);
+                        Toast.makeText(engineCtx, "已切到云端朗读；记得在 AI 模型配置中心里给一条模型勾上「语音」", Toast.LENGTH_LONG).show();
+                    } else {
+                        ReadAloudController.setSelectedEngineId(engineCtx, SystemTtsEngine.ID);
+                        Toast.makeText(engineCtx, "已切到系统朗读", Toast.LENGTH_SHORT).show();
+                    }
+                    d.dismiss();
+                });
+                eb.setNegativeButton("关闭", null);
+                eb.show();
+                break;
+            }
             case 996:
                 BackupConfigDialog.show(getParentActivity());
                 break;

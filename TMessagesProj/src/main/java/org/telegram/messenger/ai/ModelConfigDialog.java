@@ -112,7 +112,53 @@ public class ModelConfigDialog {
         capRow.addView(cbTts, weightParams());
         capRow.addView(cbImage, weightParams());
         capRow.addView(cbTranslate, weightParams());
+        final EditText eTtsPath = addField(context, box, "朗读请求路径",
+                "可留空（沿用上面的请求路径），也可填完整 http 地址", p.ttsPath, false);
+        final EditText eTtsBody = addField(context, box, "朗读请求体模板",
+                "可留空；{text} 文本、{voice} 音色、{model} 模型名、{key} APIKey", p.ttsBodyTemplate, true);
+        final EditText eTtsVoice = addField(context, box, "朗读音色",
+                "可留空，默认 alloy；例如 nova / shimmer", p.ttsVoice, false);
 
+        TextView testBtn = new TextView(context);
+        testBtn.setText("测试连接（按上面填的参数发一条测试消息）");
+        testBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        testBtn.setTextColor(0xff4fae4e);
+        testBtn.setGravity(Gravity.CENTER);
+        testBtn.setPadding(0, AndroidUtilities.dp(16), 0, AndroidUtilities.dp(6));
+        testBtn.setOnClickListener(v -> {
+            final ModelProfile tmp = p.copy();
+            String proto = text(eProtocol).toLowerCase();
+            tmp.protocol = proto.contains("http") && !proto.contains("https") ? "http" : "https";
+            String style = text(eStyle).toLowerCase();
+            tmp.apiStyle = style.contains("rest") ? ModelProfile.STYLE_REST : ModelProfile.STYLE_OPENAI;
+            tmp.baseUrl = text(eBase);
+            tmp.path = text(ePath);
+            tmp.model = text(eModel);
+            tmp.apiKey = text(eKey);
+            tmp.extraParams = text(eExtra);
+            tmp.bodyTemplate = text(eBody);
+            tmp.setHeadersText(text(eHeaders));
+            tmp.ttsPath = text(eTtsPath);
+            tmp.ttsBodyTemplate = text(eTtsBody);
+            tmp.ttsVoice = text(eTtsVoice);
+            Toast.makeText(context, "正在测试…", Toast.LENGTH_SHORT).show();
+            AiClient.testAsync(org.telegram.messenger.UserConfig.selectedAccount, tmp, new AiClient.TestCallback() {
+                @Override
+                public void onDone(final boolean ok, final String message) {
+                    AndroidUtilities.runOnUIThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(context, (ok ? "✅ 连接成功：" : "❌ 连接失败：") + message,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            });
+        });
+        LinearLayout.LayoutParams testLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        testLp.topMargin = AndroidUtilities.dp(6);
+        box.addView(testBtn, testLp);
         if (!isNew) {
             TextView delete = new TextView(context);
             delete.setText("删除这条配置");
@@ -155,6 +201,9 @@ public class ModelConfigDialog {
             p.apiKey = text(eKey);
             p.extraParams = text(eExtra);
             p.bodyTemplate = text(eBody);
+            p.ttsPath = text(eTtsPath);
+            p.ttsBodyTemplate = text(eTtsBody);
+            p.ttsVoice = text(eTtsVoice);
             p.setHeadersText(text(eHeaders));
 
             p.capabilities.clear();

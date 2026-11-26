@@ -178,6 +178,7 @@ import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.SendMessageChatArguments;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.ai.AiAssistantDialog;
+import org.telegram.messenger.ai.AiClient;
 import org.telegram.messenger.tts.ReadAloudController;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
@@ -32660,6 +32661,29 @@ public class ChatActivity extends BaseFragment implements
         root.requestApplyInsets();
     }
 
+    /** 朗读用文本：正文 -> 媒体说明 -> 兜底正文，依次取第一个非空的 */
+    private String readAloudText(MessageObject obj, MessageObject.GroupedMessages group) {
+        if (obj == null) {
+            return "";
+        }
+        Object text = obj.getMessageTextToTranslate(group, null);
+        if (text == null || text.toString().trim().length() == 0) {
+            text = getMessageCaption(obj, group);
+        }
+        if (text == null || text.toString().trim().length() == 0) {
+            text = obj.messageText;
+        }
+        return text == null ? "" : text.toString().trim();
+    }
+
+    /** 当前消息是否可朗读（与菜单显示/点击处理共用同一套标准） */
+    private boolean isReadable(MessageObject obj) {
+        if (obj == null || obj.isEphemeral() || obj.isAnimatedEmoji() || obj.isDice()) {
+            return false;
+        }
+        return readAloudText(obj, null).length() > 0;
+    }
+
     private CharSequence getMessageCaption(MessageObject messageObject, MessageObject.GroupedMessages group) {
         return getMessageCaption(messageObject, group, null);
     }
@@ -35399,8 +35423,7 @@ public class ChatActivity extends BaseFragment implements
             }
             case OPTION_READ_ALOUD: {
                 final MessageObject readObject = selectedObject;
-                final CharSequence readText = readObject == null ? null : readObject.messageText;
-                final String readString = readText == null ? "" : readText.toString();
+                final String readString = readObject == null ? "" : readAloudText(readObject, selectedObjectGroup);
                 if (readString.trim().length() == 0) {
                     Toast.makeText(getParentActivity(), "这条消息没有可朗读的文字", Toast.LENGTH_SHORT).show();
                     break;
@@ -35418,15 +35441,19 @@ public class ChatActivity extends BaseFragment implements
                     public void onError(String reason) {
                         final String tip;
                         if ("no_engine".equals(reason)) {
-                            tip = "系统朗读引擎不可用";
+                            tip = "系统朗读引擎不可用，去设置里换一个";
                         } else if ("no_language".equals(reason)) {
                             tip = "系统缺少中文或英文语音包";
-                        } else if ("empty".equals(reason)) {
+                        } else if ("empty".equals(reason) || "empty_text".equals(reason)) {
                             tip = "这条消息没有可朗读的文字";
+                        } else if ("speak_failed".equals(reason)) {
+                            tip = "音频播放失败，换一条模型试试";
+                        } else if ("no_model".equals(reason)) {
+                            tip = "还没配置朗读模型，去 AI 设置里加一条";
                         } else {
-                            tip = "朗读失败";
+                            tip = AiClient.explain(reason);
                         }
-                        AndroidUtilities.runOnUIThread(new Runnable() {
+AndroidUtilities.runOnUIThread(new Runnable() {
                             @Override
                             public void run() {
                                 if (getParentActivity() != null) {
@@ -47659,10 +47686,20 @@ public class ChatActivity extends BaseFragment implements
             items.add(LocaleController.getString(R.string.CancelSending));
             options.add(OPTION_CANCEL_SENDING);
             icons.add(R.drawable.msg_delete);
+            if (isReadable(selectedObject)) {
+                items.add("朗读");
+                options.add(OPTION_READ_ALOUD);
+                icons.add(R.drawable.filled_sound_on);
+            }
         } else if (type == 0) {
             items.add(LocaleController.getString(R.string.Retry));
             options.add(OPTION_RETRY);
             icons.add(R.drawable.msg_retry);
+            if (isReadable(selectedObject)) {
+                items.add("朗读");
+                options.add(OPTION_READ_ALOUD);
+                icons.add(R.drawable.filled_sound_on);
+            }
 
             items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
             options.add(OPTION_DELETE);
@@ -47698,7 +47735,7 @@ public class ChatActivity extends BaseFragment implements
                     options.add(OPTION_TRANSLATE);
                     icons.add(R.drawable.msg_translate);
                 }
-                if (selectedObject != null && !selectedObject.isEphemeral() && !TextUtils.isEmpty(selectedObject.messageText) && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
+                if (isReadable(selectedObject)) {
                     items.add("朗读");
                     options.add(OPTION_READ_ALOUD);
                     icons.add(R.drawable.filled_sound_on);
