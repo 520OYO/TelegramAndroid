@@ -975,8 +975,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                         "关：隐藏长按菜单 AI 项，禁止打开 AI 对话"
                 };
                 AlertDialog.Builder ab = new AlertDialog.Builder(aiCtx);
-                ab.setTitle("AI 功能总开关");
-                ab.setSingleChoiceItems(aiOpts, aiOn ? 0 : 1, (d, which) -> {
+                ab.setTitle("AI 功能总开关（当前：" + (aiOn ? "开" : "关") + "）");
+                ab.setItems(aiOpts, (d, which) -> {
                     AiFlags.setEnabled(aiCtx, which == 0);
                     d.dismiss();
                     Toast.makeText(aiCtx, which == 0 ? "AI 功能已开启" : "AI 功能已关闭（翻译、朗读不受影响）", Toast.LENGTH_SHORT).show();
@@ -1001,8 +1001,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 };
                 final int checkedIdx = CloudTtsEngine.ID.equals(curEngine) ? 1 : 0;
                 AlertDialog.Builder eb = new AlertDialog.Builder(engineCtx);
-                eb.setTitle("选朗读引擎");
-                eb.setSingleChoiceItems(engineNames, checkedIdx, (d, which) -> {
+                eb.setTitle("选朗读引擎（当前：" + (checkedIdx == 1 ? "云端朗读" : "系统朗读") + "）");
+                eb.setItems(engineNames, (d, which) -> {
                     if (which == 1) {
                         ReadAloudController.setSelectedEngineId(engineCtx, CloudTtsEngine.ID);
                         Toast.makeText(engineCtx, "已切到云端朗读；记得在 AI 模型配置中心里给一条模型勾上「语音」", Toast.LENGTH_LONG).show();

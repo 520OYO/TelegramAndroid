@@ -96,8 +96,8 @@ public class FeatureModelDialog {
             }
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(name);
-        builder.setSingleChoiceItems(items, checked, (dialog, which) -> {
+        builder.setTitle(name + "（当前：" + (checked == 0 ? "自动" : list.get(checked - 1).name) + "）");
+        builder.setItems(items, (dialog, which) -> {
             if (which == 0) {
                 store.setSelectedId(key, null);
                 Toast.makeText(context, name + "：已改为自动选模型", Toast.LENGTH_SHORT).show();

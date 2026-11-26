@@ -199,8 +199,8 @@ public class AiChatPage {
                 Toast.makeText(context, "AI 功能总开关是关着的", Toast.LENGTH_SHORT).show();
                 return;
             }
-            final long chan = CUR_CHANNEL;
-            if (chan != 0 && !AiPerm.canRead(context, chan)) {
+            final long selChan = CUR_CHANNEL;
+            if (selChan != 0 && !AiPerm.canRead(context, selChan)) {
                 Toast.makeText(context,
                         "这个频道被 AI 权限拦住了（不能读），换个频道或在「权限」里放开",
                         Toast.LENGTH_SHORT).show();
@@ -211,15 +211,15 @@ public class AiChatPage {
             addBubble(context, list, "u", q);
 
             final TextView[] pending = addBubble(context, list, "a",
-                    chan == 0 ? "思考中…" : "先在这个频道里搜一下…");
+                    selChan == 0 ? "思考中…" : "先在这个频道里搜一下…");
             send.setEnabled(false);
             send.setAlpha(0.5f);
             scrollDown(scroll);
 
-            if (chan == 0) {
+            if (selChan == 0) {
                 askAi(context, account, list, scroll, send, pending, 0, q, q);
             } else {
-                searchThenAsk(context, account, list, scroll, send, pending, chan, q, q, true);
+                searchThenAsk(context, account, list, scroll, send, pending, selChan, q, q, true);
             }
         };
 
