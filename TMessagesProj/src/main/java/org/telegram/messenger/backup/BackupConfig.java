@@ -18,6 +18,9 @@ public class BackupConfig {
     private static final String KEY_DIR_MUSIC = "dir_music";
     private static final String KEY_TARGET_CHANNEL = "target_channel";
     private static final String KEY_LOG_CHANNEL = "log_channel";
+    private static final String KEY_PHOTO_CHANNEL = "photo_channel";
+    private static final String KEY_VIDEO_CHANNEL = "video_channel";
+    private static final String KEY_MUSIC_CHANNEL = "music_channel";
     private static final String KEY_WHITELIST = "whitelist";
     private static final String KEY_BLACKLIST = "blacklist";
     private static final String KEY_INTERVAL = "interval_ms";
@@ -153,12 +156,101 @@ public class BackupConfig {
         putLong(KEY_TARGET_CHANNEL, id);
     }
 
+    /* ---------- 三个素材分流频道：照片 / 视频 / 音乐各发各的 ---------- */
+
+    public long getPhotoChannel() {
+        return getLong(KEY_PHOTO_CHANNEL, 0L);
+    }
+
+    public void setPhotoChannel(long id) {
+        putLong(KEY_PHOTO_CHANNEL, id);
+    }
+
+    public long getVideoChannel() {
+        return getLong(KEY_VIDEO_CHANNEL, 0L);
+    }
+
+    public void setVideoChannel(long id) {
+        putLong(KEY_VIDEO_CHANNEL, id);
+    }
+
+    public long getMusicChannel() {
+        return getLong(KEY_MUSIC_CHANNEL, 0L);
+    }
+
+    public void setMusicChannel(long id) {
+        putLong(KEY_MUSIC_CHANNEL, id);
+    }
+
+    /**
+     * 按素材类型取分流频道：照片 / 视频 / 音乐分别发到各自的频道；
+     * 某一类频道没单独设置时回落到「目标频道」，兼容 v3 的老配置。
+     */
+    public long getChannelForType(String type) {
+        long id = 0L;
+        if (BackupScanner.TYPE_PHOTO.equals(type)) {
+            id = getPhotoChannel();
+        } else if (BackupScanner.TYPE_VIDEO.equals(type)) {
+            id = getVideoChannel();
+        } else if (BackupScanner.TYPE_MUSIC.equals(type)) {
+            id = getMusicChannel();
+        }
+        if (id == 0L) {
+            id = getTargetChannel();
+        }
+        return id;
+    }
+
+    /** 三个素材频道 + 目标频道里是否至少配了一个，用于开始上传前的检查。 */
+    public boolean hasAnyMaterialChannel() {
+        return getPhotoChannel() != 0L
+                || getVideoChannel() != 0L
+                || getMusicChannel() != 0L
+                || getTargetChannel() != 0L;
+    }
+
+    /** 判断某个频道是否被配置成了日志频道（日志频道永远不能当素材目标）。 */
+    public boolean isLogChannel(long id) {
+        return id != 0L && id == getLogChannel();
+    }
+
     public long getLogChannel() {
         return getLong(KEY_LOG_CHANNEL, 0L);
     }
 
     public void setLogChannel(long id) {
         putLong(KEY_LOG_CHANNEL, id);
+        if (id == 0L) {
+            return;
+        }
+        // 日志频道默认进黑名单：一次设置，永久不会拿它当素材目标
+        addToBlacklist(id);
+        // 万一同一个 ID 也被填进了素材频道，直接清掉，防止素材灌进日志频道
+        if (getTargetChannel() == id) {
+            setTargetChannel(0L);
+        }
+        if (getPhotoChannel() == id) {
+            setPhotoChannel(0L);
+        }
+        if (getVideoChannel() == id) {
+            setVideoChannel(0L);
+        }
+        if (getMusicChannel() == id) {
+            setMusicChannel(0L);
+        }
+    }
+
+    /** 把某个频道 ID 追加进黑名单（幂等，已在里面就不重复加）。 */
+    public void addToBlacklist(long id) {
+        if (id == 0L) {
+            return;
+        }
+        String bl = getBlacklist();
+        if (listContains(bl, id)) {
+            return;
+        }
+        String next = (bl == null || bl.length() == 0) ? String.valueOf(id) : (bl + "," + id);
+        putString(KEY_BLACKLIST, next);
     }
 
     public String getWhitelist() {

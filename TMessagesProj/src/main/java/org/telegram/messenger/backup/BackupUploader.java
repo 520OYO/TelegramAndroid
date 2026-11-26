@@ -64,8 +64,7 @@ public class BackupUploader {
                 String msg;
                 try {
                     BackupConfig cfg = BackupConfig.getInstance();
-                    final long dialogId = cfg.getTargetChannel();
-                    if (dialogId == 0L) {
+                    if (!cfg.hasAnyMaterialChannel()) {
                         finish(cb, 0, 0, MSG_NO_CHANNEL);
                         return;
                     }
@@ -83,18 +82,25 @@ public class BackupUploader {
                             break;
                         }
                         BackupScanner.Item it = list.get(i);
+                        // 按类型分流：照片 / 视频 / 音乐各自发到自己的频道。
+                        // 日志频道和黑名单里的频道一律不发，直接算失败留给下一轮。
+                        final long target = cfg.getChannelForType(it.type);
                         boolean ok = false;
-                        for (int r = 0; r < maxRetry && !ok; r++) {
-                            try {
-                                sendOne(account, dialogId, it);
-                                ok = true;
-                            } catch (Throwable e) {
-                                FileLog.e(e);
+                        if (target != 0L && cfg.isChannelAllowed(target)) {
+                            for (int r = 0; r < maxRetry && !ok; r++) {
                                 try {
-                                    Thread.sleep(500L * (r + 1));
-                                } catch (InterruptedException ignore) {
+                                    sendOne(account, target, it);
+                                    ok = true;
+                                } catch (Throwable e) {
+                                    FileLog.e(e);
+                                    try {
+                                        Thread.sleep(500L * (r + 1));
+                                    } catch (InterruptedException ignore) {
+                                    }
                                 }
                             }
+                        } else {
+                            FileLog.e(new RuntimeException("backup: no allowed channel for type " + it.type));
                         }
                         if (ok) {
                             BackupStore.markUploaded(it.type, it.path, it.size, it.mtime);
@@ -132,6 +138,8 @@ public class BackupUploader {
     }
 
     private static void sendOne(int account, long dialogId, BackupScanner.Item it) {
+        // 素材一律不带说明文字：所有 caption 相关参数恒为 null，
+        // 频道里只落文件本身，不夹带任何文字说明。
         AccountInstance ai = AccountInstance.getInstance(account);
         if (BackupScanner.TYPE_PHOTO.equals(it.type)) {
             SendMessagesHelper.prepareSendingPhoto(ai, it.path, null, dialogId, null, null, null, null, null, null, null, 0, null, true, 0, 0, SendMessageChatArguments.EMPTY);

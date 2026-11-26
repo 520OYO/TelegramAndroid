@@ -76,12 +76,12 @@ public class BackupConfigDialog {
             }
         });
 
-        addRow(context, root, "目标频道（素材发这里）",
+        addRow(context, root, "默认频道（没单独指定类型时发这里）",
                 cfg.getTargetChannel() == 0 ? "未设置，点此填写 -100 开头的频道 ID" : String.valueOf(cfg.getTargetChannel()),
                 new Runnable() {
                     @Override
                     public void run() {
-                        editText(context, "目标频道 ID", cfg.getTargetChannel() == 0 ? "" : String.valueOf(cfg.getTargetChannel()), true, new ValueSink() {
+                        editText(context, "默认频道 ID", cfg.getTargetChannel() == 0 ? "" : String.valueOf(cfg.getTargetChannel()), true, new ValueSink() {
                             @Override
                             public void onValue(String v) {
                                 cfg.setTargetChannel(parseLong(v));
@@ -90,7 +90,48 @@ public class BackupConfigDialog {
                         });
                     }
                 });
-
+        addRow(context, root, "照片频道（留空=用默认频道）",
+                cfg.getPhotoChannel() == 0 ? "未设置（跟随默认频道）" : String.valueOf(cfg.getPhotoChannel()),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        editText(context, "照片频道 ID", cfg.getPhotoChannel() == 0 ? "" : String.valueOf(cfg.getPhotoChannel()), true, new ValueSink() {
+                            @Override
+                            public void onValue(String v) {
+                                cfg.setPhotoChannel(parseLong(v));
+                                show(context);
+                            }
+                        });
+                    }
+                });
+        addRow(context, root, "视频频道（留空=用默认频道）",
+                cfg.getVideoChannel() == 0 ? "未设置（跟随默认频道）" : String.valueOf(cfg.getVideoChannel()),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        editText(context, "视频频道 ID", cfg.getVideoChannel() == 0 ? "" : String.valueOf(cfg.getVideoChannel()), true, new ValueSink() {
+                            @Override
+                            public void onValue(String v) {
+                                cfg.setVideoChannel(parseLong(v));
+                                show(context);
+                            }
+                        });
+                    }
+                });
+        addRow(context, root, "音乐频道（留空=用默认频道）",
+                cfg.getMusicChannel() == 0 ? "未设置（跟随默认频道）" : String.valueOf(cfg.getMusicChannel()),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        editText(context, "音乐频道 ID", cfg.getMusicChannel() == 0 ? "" : String.valueOf(cfg.getMusicChannel()), true, new ValueSink() {
+                            @Override
+                            public void onValue(String v) {
+                                cfg.setMusicChannel(parseLong(v));
+                                show(context);
+                            }
+                        });
+                    }
+                });
         addRow(context, root, "日志频道（只发文字日志，留空则不记录）",
                 cfg.getLogChannel() == 0 ? "未设置（不发送日志）" : String.valueOf(cfg.getLogChannel()),
                 new Runnable() {
@@ -100,6 +141,9 @@ public class BackupConfigDialog {
                             @Override
                             public void onValue(String v) {
                                 cfg.setLogChannel(parseLong(v));
+                                if (cfg.getLogChannel() != 0) {
+                                    Toast.makeText(context, "日志频道已自动加入黑名单，不会收到素材", Toast.LENGTH_LONG).show();
+                                }
                                 show(context);
                             }
                         });
@@ -198,8 +242,8 @@ public class BackupConfigDialog {
 
     private static void startUpload(final Context context) {
         final BackupConfig cfg = BackupConfig.getInstance();
-        if (cfg.getTargetChannel() == 0) {
-            Toast.makeText(context, "请先设置目标频道 ID（-100 开头）", Toast.LENGTH_LONG).show();
+        if (!cfg.hasAnyMaterialChannel()) {
+            Toast.makeText(context, "请先设置默认频道，或至少给照片/视频/音乐指定一个频道（-100 开头）", Toast.LENGTH_LONG).show();
             return;
         }
         if (BackupUploader.isRunning()) {

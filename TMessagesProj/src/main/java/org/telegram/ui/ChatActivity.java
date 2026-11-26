@@ -180,6 +180,7 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.ai.AiAssistantDialog;
 import org.telegram.messenger.ai.AiClient;
 import org.telegram.messenger.ai.AiFlags;
+import org.telegram.messenger.backup.BackupConfigDialog;
 import org.telegram.messenger.tts.ReadAloudController;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
@@ -1864,6 +1865,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int publish_web = 113;
     private final static int delete = 12;
     private final static int chat_enc_timer = 13;
+    private final static int backup_upload = 9001; // 频道菜单：上传本地文件到素材频道
     private final static int chat_menu_attach = 14;
     private final static int chat_menu_search = -1;
     private final static int chat_menu_options = -2;
@@ -4084,6 +4086,11 @@ public class ChatActivity extends BaseFragment implements
                             resourceProvider
                         );
                     });
+                } else if (id == backup_upload) {
+                    if (getParentActivity() == null) {
+                        return;
+                    }
+                    BackupConfigDialog.show(getParentActivity());
                 } else if (id == tag_message) {
                     if (tagSelector == null) {
                         showTagSelector();
@@ -4717,6 +4724,9 @@ public class ChatActivity extends BaseFragment implements
 
             if (searchItem != null) {
                 headerItem.lazilyAddSubItem(search, R.drawable.msg_search, LocaleController.getString(R.string.Search));
+            }
+            if (ChatObject.isChannel(currentChat) && !ChatObject.isNotInChat(currentChat)) {
+                headerItem.lazilyAddSubItem(backup_upload, R.drawable.msg_gallery, "上传本地文件到素材频道");
             }
             if (ChatObject.isBoostSupported(currentChat) && (getUserConfig().isPremium() || ChatObject.isBoosted(chatInfo) || ChatObject.hasAdminRights(currentChat))) {
                 RLottieDrawable drawable = new RLottieDrawable(R.raw.boosts, dp(24), dp(24));
