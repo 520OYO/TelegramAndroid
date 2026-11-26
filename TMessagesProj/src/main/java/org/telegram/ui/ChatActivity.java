@@ -177,6 +177,7 @@ import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.SendMessageChatArguments;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.tts.ReadAloudController;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
 import org.telegram.messenger.MessagesController;
@@ -1325,6 +1326,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_SEND_MONEY = 117;
     public final static int OPTION_STOP_LIVE_LOCATION = 118;
     public final static int OPTION_VOICE_TIMECODES = 119;
+    public final static int OPTION_READ_ALOUD = 120;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -35380,6 +35382,47 @@ public class ChatActivity extends BaseFragment implements
                 });
                 break;
             }
+            case OPTION_READ_ALOUD: {
+                final MessageObject readObject = selectedObject;
+                final CharSequence readText = readObject == null ? null : readObject.messageText;
+                final String readString = readText == null ? "" : readText.toString();
+                if (readString.trim().length() == 0) {
+                    Toast.makeText(getParentActivity(), "这条消息没有可朗读的文字", Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                ReadAloudController.getInstance().toggle(getParentActivity(), readString, new ReadAloudController.Listener() {
+                    @Override
+                    public void onStart() {
+                    }
+
+                    @Override
+                    public void onDone() {
+                    }
+
+                    @Override
+                    public void onError(String reason) {
+                        final String tip;
+                        if ("no_engine".equals(reason)) {
+                            tip = "系统朗读引擎不可用";
+                        } else if ("no_language".equals(reason)) {
+                            tip = "系统缺少中文或英文语音包";
+                        } else if ("empty".equals(reason)) {
+                            tip = "这条消息没有可朗读的文字";
+                        } else {
+                            tip = "朗读失败";
+                        }
+                        AndroidUtilities.runOnUIThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (getParentActivity() != null) {
+                                    Toast.makeText(getParentActivity(), tip, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                });
+                break;
+            }
             case OPTION_DELETE: {
                 if (getParentActivity() == null) {
                     selectedObject = null;
@@ -47639,6 +47682,11 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.TranslateMessage));
                     options.add(OPTION_TRANSLATE);
                     icons.add(R.drawable.msg_translate);
+                }
+                if (selectedObject != null && !selectedObject.isEphemeral() && !TextUtils.isEmpty(selectedObject.messageText) && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
+                    items.add("朗读");
+                    options.add(OPTION_READ_ALOUD);
+                    icons.add(R.drawable.filled_sound_on);
                 }
                 if (message.canEditMessage(currentChat) && message.type != MessageObject.TYPE_POLL || chatMode == MODE_WELCOME_MESSAGES) {
                     items.add(LocaleController.getString(R.string.Edit));
