@@ -36,7 +36,7 @@ public class BackupScanner {
         }
 
         public String typeName() {
-            return typeName(type);
+            return BackupScanner.typeName(type);
         }
     }
 
@@ -57,13 +57,13 @@ public class BackupScanner {
         ArrayList<Item> out = new ArrayList<>();
         BackupConfig cfg = BackupConfig.getInstance();
         if (photos) {
-            collect(TYPE_PHOTO, cfg.getPhotoDir(), PHOTO_EXT, out);
+            collect(TYPE_PHOTO, cfg.getDirPhoto(), PHOTO_EXT, out);
         }
         if (videos) {
-            collect(TYPE_VIDEO, cfg.getVideoDir(), VIDEO_EXT, out);
+            collect(TYPE_VIDEO, cfg.getDirVideo(), VIDEO_EXT, out);
         }
         if (musics) {
-            collect(TYPE_MUSIC, cfg.getMusicDir(), MUSIC_EXT, out);
+            collect(TYPE_MUSIC, cfg.getDirMusic(), MUSIC_EXT, out);
         }
         Collections.sort(out, new Comparator<Item>() {
             @Override
