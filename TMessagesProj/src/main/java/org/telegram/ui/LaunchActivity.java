@@ -149,6 +149,7 @@ import org.telegram.messenger.voip.VoIPGroupNotification;
 import org.telegram.messenger.voip.VoIPPendingCall;
 import org.telegram.messenger.voip.VoIPPreNotificationService;
 import org.telegram.messenger.voip.VoIPService;
+import org.telegram.messenger.forkgram.ApiCredentials;
 import org.telegram.messenger.forkgram.AppUpdater;
 import org.telegram.messenger.forkgram.ExtractMediaFromPreview;
 import org.telegram.messenger.forkgram.ForkSettings;
@@ -415,6 +416,18 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     protected void onCreate(Bundle savedInstanceState) {
         isActive = true;
         activeInstanceCount++;
+
+        // Fork client: 死锁修复 —— 没有有效的 api_id/api_hash 时，绝不能进登录流程。
+        // 原因：tgnet 在登录前就要用 BuildVars.APP_ID / APP_HASH 建立连接，
+        // 用编译期占位值会被服务器拒绝（CONNECTION_API_ID_INVALID），
+        // 而原来的配置入口在登录之后才可达，等于永远进不去。
+        // 这里在启动最早处就把用户导到独立的首次配置页，填完重启进程生效。
+        if (!ApiCredentials.hasCredentials()) {
+            startActivity(new Intent(this, FirstRunSetupActivity.class));
+            finish();
+            return;
+        }
+
         if (BuildVars.DEBUG_VERSION) {
             StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder(StrictMode.getVmPolicy())
                 .detectLeakedClosableObjects()

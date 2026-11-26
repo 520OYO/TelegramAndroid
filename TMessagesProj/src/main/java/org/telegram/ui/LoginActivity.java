@@ -353,6 +353,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private Runnable keyboardHideCallback;
 
     private ImageView backButtonView;
+    // Fork client: 登录页可见的 API 凭据入口（填错 / 想换 api_id 时随时改）
+    private TextView apiSettingsButton;
     private RadialProgressView radialProgressView;
 
     private ImageView proxyButtonView;
@@ -590,6 +592,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 marginLayoutParams = (MarginLayoutParams) backButtonView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
+                if (apiSettingsButton != null) {
+                    marginLayoutParams = (MarginLayoutParams) apiSettingsButton.getLayoutParams();
+                    marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
+                }
+
                 marginLayoutParams = (MarginLayoutParams) proxyButtonView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
@@ -757,6 +764,26 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         int padding = AndroidUtilities.dp(4);
         backButtonView.setPadding(padding, padding, padding, padding);
         sizeNotifierFrameLayout.addView(backButtonView, LayoutHelper.createFrame(32, 32, Gravity.LEFT | Gravity.TOP, 16, 16, 0, 0));
+
+        // Fork client: 登录页左上角的 ⚙ 入口，随时可以改 api_id / api_hash。
+        // 用 TextView + 字符实现，不依赖任何 res 图片资源，避免稀疏检出 / 资源缺失导致构建失败。
+        apiSettingsButton = new TextView(context);
+        apiSettingsButton.setText("⚙");
+        apiSettingsButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        apiSettingsButton.setGravity(Gravity.CENTER);
+        apiSettingsButton.setContentDescription("API 凭据设置");
+        ThemeBind.textColor(apiSettingsButton, Theme.key_windowBackgroundWhiteGrayText2);
+        apiSettingsButton.setOnClickListener(v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            try {
+                getParentActivity().startActivity(new Intent(getParentActivity(), FirstRunSetupActivity.class));
+            } catch (Throwable ignore) {
+                // 极端情况（Activity 已销毁）下静默失败，绝不让登录页崩溃
+            }
+        });
+        sizeNotifierFrameLayout.addView(apiSettingsButton, LayoutHelper.createFrame(32, 32, Gravity.LEFT | Gravity.TOP, 56, 16, 0, 0));
 
         if (emailChangeSkipCallback != null && !emailChangeNonSkippable && emailChangeIsSuggestion) {
             emailChangeSkipButton = new TextView(context);
