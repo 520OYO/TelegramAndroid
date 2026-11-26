@@ -391,6 +391,10 @@ public class ApplicationLoader extends Application {
             applicationContext = getApplicationContext();
         }
 
+        // Fork: 用 App 内设置的 api_id / api_hash 覆盖编译期占位值。
+        // 必须早于 NativeLoader / ConnectionsManager 初始化（native 会缓存 apiId）。
+        BuildVars.loadRuntimeCredentials(applicationContext);
+
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
 
         try {

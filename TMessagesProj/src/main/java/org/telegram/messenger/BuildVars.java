@@ -12,6 +12,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 
+import org.telegram.messenger.forkgram.ApiCredentials;
+
 import java.util.Objects;
 
 public class BuildVars {
@@ -24,6 +26,9 @@ public class BuildVars {
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
 
+    // 编译期占位凭据（Telegram 官方公开示例值）。真正的凭据在 App 内的
+    // 「API 凭据」设置页填写，由 loadRuntimeCredentials() 在启动时覆盖这两个字段。
+    // 未配置时保持占位值：登录会失败但不会崩溃。
     public static int APP_ID = 4;
     public static String APP_HASH = "014b35b6184100b085b0d0572f9b5103";
 
@@ -70,6 +75,32 @@ public class BuildVars {
         DEBUG_VERSION = false;
         CHECK_UPDATES = (BuildConfig.CHECK_UPDATES != 0);
     }
+    /**
+     * 从主设置文件读取用户在 App 内填写的 api_id / api_hash，覆盖编译期占位值。
+     * 必须在 ApplicationLoader.onCreate() 中、ConnectionsManager 初始化之前调用。
+     * 注意：native 层会缓存 apiId，修改后需要重启进程才会生效。
+     */
+    public static void loadRuntimeCredentials(Context context) {
+        if (context == null) {
+            context = ApplicationLoader.applicationContext;
+        }
+        if (context == null) {
+            return;
+        }
+        try {
+            SharedPreferences preferences = context.getSharedPreferences(ApiCredentials.PREF_FILE, Context.MODE_PRIVATE);
+            int runtimeApiId = preferences.getInt(ApiCredentials.PREF_API_ID, 0);
+            String runtimeApiHash = preferences.getString(ApiCredentials.PREF_API_HASH, "");
+            if (runtimeApiId > 0 && ApiCredentials.isValidHash(runtimeApiHash)) {
+                APP_ID = runtimeApiId;
+                APP_HASH = runtimeApiHash.trim();
+                FileLog.d("BuildVars: runtime api credentials applied, apiId = " + APP_ID);
+            }
+        } catch (Throwable ignore) {
+            // 读取失败时保持编译期占位值，绝不因此崩溃
+        }
+    }
+
     public static int USER_ID_OWNER = BuildConfig.USER_ID_OWNER;
     public static String USER_REPO = BuildConfig.USER_REPO;
 

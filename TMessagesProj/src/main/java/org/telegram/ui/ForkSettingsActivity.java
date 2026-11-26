@@ -27,6 +27,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.forkgram.ApiCredentials;
 import org.telegram.messenger.forkgram.FolderIcons;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BotWebViewVibrationEffect;
@@ -166,6 +167,7 @@ public class ForkSettingsActivity extends BaseFragment {
     public static final int ID_WEB_PUBLISH = 101;
     public static final int ID_VOICE_TIMECODES = 102;
     public static final int ID_QUICK_ATTACH = 103;
+    public static final int ID_API_CREDENTIALS = 104;
 
     public static final int ID_EXPORT_SETTINGS = 95;
     public static final int ID_IMPORT_SETTINGS = 96;
@@ -767,6 +769,10 @@ public class ForkSettingsActivity extends BaseFragment {
             items.add(UItem.asShadow(null));
         }
 
+        items.add(UItem.asHeader("API Credentials"));
+        items.add(UItem.asSettingsCell(ID_API_CREDENTIALS, "API ID / Hash", ApiCredentials.describe()));
+        items.add(UItem.asShadow("Override the api_id / api_hash baked into the build. Restart the app after saving."));
+
         items.add(UItem.asHeader(LocaleController.getString(R.string.WebPublishSection)));
         items.add(UItem.asSettingsCell(ID_WEB_PUBLISH, LocaleController.getString(R.string.WebPublish), getWebPublishText()));
         items.add(UItem.asShadow(LocaleController.getString(R.string.WebPublishInfo)));
@@ -982,6 +988,9 @@ public class ForkSettingsActivity extends BaseFragment {
 
         } else if (id == ID_LASTFM_LOGIN) {
             presentFragment(new LastFmLoginActivity());
+
+        } else if (id == ID_API_CREDENTIALS) {
+            presentFragment(new ApiCredentialsActivity());
 
         } else if (id == ID_WEB_PUBLISH) {
             presentFragment(new WebPublishSettingsActivity());
